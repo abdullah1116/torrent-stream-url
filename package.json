@@ -1,0 +1,20 @@
+{
+  "name": "torrent-url",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@dil5han/yts": "^1.0.1",
+    "express": "^4.21.2",
+    "parse-torrent": "^11.0.18",
+    "pump": "^3.0.2",
+    "torrent-parser": "^1.2.0",
+    "torrent-stream": "^1.2.1"
+  }
+}
