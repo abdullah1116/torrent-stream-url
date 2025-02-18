@@ -2,6 +2,7 @@ import express, { Express } from 'express';
 import MagnetUri from 'magnet-uri';
 import fs from 'node:fs';
 import path from 'node:path';
+import { env } from 'node:process';
 import parseTorrent from 'parse-torrent';
 import RangeParser from 'range-parser';
 import torrentStream from 'torrent-stream';
@@ -9,9 +10,8 @@ import { yts } from './yts';
 
 const app: Express = express();
 const torrents = new Map();
-// const RECONNECT_TIMEOUT = 30 * 60 * 1000;
-const RECONNECT_TIMEOUT = 30 * 1000;
-const PORT = 8000;
+const RECONNECT_TIMEOUT = env.RECONNECT_TIMEOUT || 15 * 60 * 1000;
+const PORT = env.PORT || 8000;
 const TORRENT_STREAM_FOLDER = 'torrent-stream';
 
 app.use((err, req, res, next) => {
