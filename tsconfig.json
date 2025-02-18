@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "esnext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
+    "outDir": "dist", // Optional: Output directory for compiled JS
+    "baseUrl": ".", // Optional:  Base directory for module resolution
+    "noImplicitAny": false, // Set to false to allow implicit 'any'
+    "paths": {
+      // Optional:  Path aliases
+      "*": ["src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "index.ts"], //  Or wherever your TS files are
+  "exclude": ["node_modules"]
+}
