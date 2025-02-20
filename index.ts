@@ -8,11 +8,12 @@ import RangeParser from 'range-parser';
 import torrentStream from 'torrent-stream';
 import { yts } from './yts';
 
+env.PORT ||= String(8000);
+env.TORRENT_STREAM_FOLDER ||= 'torrent-stream';
+env.RECONNECT_TIMEOUT ||= String(15 * 60 * 1000);
+
 const app: Express = express();
 const torrents = new Map();
-const RECONNECT_TIMEOUT = env.RECONNECT_TIMEOUT || 15 * 60 * 1000;
-const PORT = env.PORT || 8000;
-const TORRENT_STREAM_FOLDER = 'torrent-stream';
 
 app.use((err, req, res, next) => {
   if (res.headersSent) {
@@ -45,7 +46,7 @@ async function torrentToEngine(
 
         torrents.delete(torrent.infoHash);
         console.log(new Date(), 'engine-  ', torrent.infoHash);
-      }, RECONNECT_TIMEOUT);
+      }, +env.RECONNECT_TIMEOUT!);
     };
 
     const lock = Promise.withResolvers();
@@ -85,7 +86,7 @@ function streamTorrent(torrent: MagnetUri.Instance, engine, req, res, next) {
       return movieExtensions.includes(ext);
     })
     .reduce((prev, current) => {
-      return !prev ? current : current.length > prev.length ? current : prev;
+      return !prev || current.length > prev.length ? current : prev;
     });
 
   if (!file) {
@@ -210,18 +211,18 @@ app.get('/imdb/:id', async (req, res, next) => {
 });
 
 async function loadExistingTorrent() {
-  if (!fs.existsSync(TORRENT_STREAM_FOLDER)) {
+  if (!fs.existsSync(env.TORRENT_STREAM_FOLDER!)) {
     return;
   }
 
-  const files = fs.readdirSync(TORRENT_STREAM_FOLDER);
+  const files = fs.readdirSync(env.TORRENT_STREAM_FOLDER!);
 
   for (const file of files) {
     if (file.endsWith('.torrent')) {
       const infoHash = file.replace('.torrent', '');
 
       if (!torrents.has(infoHash)) {
-        const torrentPath = path.join(TORRENT_STREAM_FOLDER, file);
+        const torrentPath = path.join(env.TORRENT_STREAM_FOLDER!, file);
 
         try {
           const torrentFile = fs.readFileSync(torrentPath);
@@ -242,8 +243,8 @@ async function loadExistingTorrent() {
   }
 }
 
-app.listen(PORT, async () => {
-  console.log(new Date(), `Server listening on port ${PORT}`);
+app.listen(env.PORT, async () => {
+  console.log(new Date(), `Server listening on port ${env.PORT}`);
   await loadExistingTorrent();
 });
 
