@@ -2,3 +2,4 @@ package-lock.json
 node_modules
 torrent-stream
 .vscode
+bundle.js
