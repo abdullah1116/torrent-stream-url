@@ -7,14 +7,17 @@
     "build": "bun build --minify  --target=bun --outfile=bundle.js index.ts"
   },
   "dependencies": {
+    "adm-zip": "^0.5.16",
     "axios": "^1.7.9",
     "cheerio": "^1.0.0",
     "express": "^4.21.2",
+    "node-html-parser": "^7.0.1",
     "parse-torrent": "^11.0.18",
     "range-parser": "^1.2.1",
     "torrent-stream": "^1.2.1"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
     "@types/bun": "latest",
     "@types/express": "4.17.14",
     "@types/parse-torrent": "^5.8.7",

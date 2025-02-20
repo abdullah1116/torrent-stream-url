@@ -6,6 +6,7 @@ import { env } from 'node:process';
 import parseTorrent from 'parse-torrent';
 import RangeParser from 'range-parser';
 import torrentStream from 'torrent-stream';
+import { imdbIdToSubtitle } from './subtitle';
 import { yts } from './yts';
 
 env.PORT ||= String(8000);
@@ -190,14 +191,12 @@ app.get('/imdb/:id', async (req, res, next) => {
       throw 'error';
     }
 
-    errorMessage = 'error parsing yts api';
+    errorMessage = 'movie not found, api error';
     const data = await yts(imdbId);
-
-    errorMessage = 'error parsing yts movie api';
     await data[0].fetch();
     data[0].torrents;
 
-    errorMessage = 'error movie format';
+    errorMessage = 'movie format error';
     const qualities = ['1080p', '720p'];
     let bestQualityTorrent: (typeof data)[0]['torrents'][0] = {} as any;
 
@@ -212,6 +211,34 @@ app.get('/imdb/:id', async (req, res, next) => {
     const magnetLink = bestQualityTorrent['magnet'];
 
     res.redirect(`/magnet?link=${encodeURIComponent(magnetLink)}`);
+  } catch (error: any) {
+    errorMessage ||= error?.message || error;
+
+    next(errorMessage);
+  }
+});
+
+app.get('/srt/:id', async (req, res, next) => {
+  const imdbId = req.params.id || '';
+
+  let errorMessage = '';
+  try {
+    errorMessage = 'invalid imdb id';
+    if (!imdbId.match(/tt\d*$/)) {
+      throw 'error';
+    }
+
+    errorMessage = 'no subtitle found';
+    const subtitles = await imdbIdToSubtitle(imdbId);
+
+    return res
+      .writeHead(200, {
+        'Content-Type': 'text',
+        'Accept-Ranges': 'bytes',
+        'Content-Disposition': 'attachment;',
+      })
+      .send(subtitles)
+      .end();
   } catch (error: any) {
     errorMessage ||= error?.message || error;
 
