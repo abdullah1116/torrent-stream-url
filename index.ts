@@ -256,7 +256,7 @@ async function cleanupTorrents() {
   const timeoutMultiplier = torrents.size < 4 ? 5 : torrents.size < 6 ? 3 : 1;
   console.log(
     new Date(),
-    'cleanup? ',
+    'cleanup  ',
     'torrents count:',
     torrents.size,
     'timeout multiplier',
@@ -265,12 +265,10 @@ async function cleanupTorrents() {
 
   for (const [infoHash, engine] of torrents.entries()) {
     if (engine.clientCount > 0) {
-      console.log(new Date(), 'cleanup+ ', infoHash, engine.clientCount);
       continue;
     }
 
     if (engine.lastClientDisconnect === -1) {
-      console.log(new Date(), 'cleanup~ ', infoHash, 'not started');
       continue;
     }
 
@@ -281,13 +279,12 @@ async function cleanupTorrents() {
         (torrents.size < 4 ? 5 : torrents.size < 6 ? 3 : 1);
 
     if (shouldRemove) {
-      console.log(new Date(), 'cleanup- ', infoHash, inactiveTime);
+      console.log(new Date(), 'engine-  ', infoHash);
+
       engine.remove(false, () => {});
       engine.destroy(() => {});
       torrents.delete(infoHash);
     }
-
-    console.log(new Date(), 'cleanup. ', infoHash, inactiveTime, shouldRemove);
   }
 }
 
