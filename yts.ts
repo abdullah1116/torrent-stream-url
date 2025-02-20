@@ -1,32 +1,30 @@
-import axios from 'axios';
-import * as cheerio from 'cheerio';
+import parse from 'node-html-parser';
 
 export async function yts(movieName: string): Promise<lazyMovie[]> {
-  let movies: lazyMovie[] = [];
+  const root = parse(
+    await (
+      await fetch(`https://yts.mx/browse-movies/${movieName}`, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.106 Safari/537.36',
+        },
+      })
+    ).text()
+  );
 
-  let searchPage: any;
-
-  searchPage = await axios
-    .get(`https://yts.mx/browse-movies/${movieName}`, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.106 Safari/537.36',
-      },
+  return root
+    .querySelectorAll('.browse-movie-wrap')
+    .map((element) => {
+      const anchor = element.querySelector('a.browse-movie-title');
+      if (anchor) {
+        const href = anchor.getAttribute('href');
+        const text = anchor.textContent;
+        if (href && text) {
+          return new lazyMovie(text, href);
+        }
+      }
     })
-    .catch(() => console.error('Error fetching movie list'));
-
-  const search = cheerio.load(searchPage.data);
-
-  search('.browse-movie-wrap').each((index, element) => {
-    const anchor = search(element).find('a.browse-movie-title');
-    const href = anchor.attr('href');
-    const text = anchor.first().text();
-    if (href && text) {
-      movies.push(new lazyMovie(text, href));
-    }
-  });
-
-  return movies;
+    .filter((m) => !!m);
 }
 
 class lazyMovie {
@@ -40,54 +38,32 @@ class lazyMovie {
   constructor(public name: string, public link: string) {}
 
   async fetch() {
-    // let movieDetail: MovieDetail = {
-    //   Url: undefined,
-    //   Name: undefined,
-    //   Language: undefined,
-    //   Img: undefined,
-    //   Release_date: undefined,
-    //   Gen: undefined,
-    //   Rating: undefined,
-    //   Likes: undefined,
-    //   Runtime: undefined,
-    // };
+    const page = parse(
+      await (
+        await fetch(this.link, {
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.106 Safari/537.36',
+          },
+        })
+      ).text()
+    );
 
-    const page = cheerio.load((await axios.get(this.link)).data);
+    this.torrents = page
+      .querySelectorAll('.modal-torrent')
+      .map((element) => {
+        const qualitySizeElements = element.querySelectorAll('.quality-size');
+        const qualityFull = qualitySizeElements[0]?.textContent?.trim() || '';
+        const fileSize = qualitySizeElements[1]?.textContent?.trim() || '';
+        const magnetElement = element.querySelector('.magnet-download');
+        const magnet = magnetElement?.getAttribute('href');
+        const qualityElementModal = element.querySelector('.modal-quality');
+        const quality = qualityElementModal?.textContent || '';
 
-    // movieDetail.Name = page('.tech-spec-info h1').text().trim(); // Updated selector - more robust
-    // movieDetail.Language = page('.tech-spec-info h2').eq(0).text().trim(); // Updated selector - more robust
-    // movieDetail.Img = page('#movie-poster img').attr('src'); // Updated selector - more robust
-    // movieDetail.Release_date = page('.tech-spec-info h2').eq(1).text().trim(); // Updated selector - more robust
-    // movieDetail.Rating =
-    //   page('.rating-row span.score_ratings').text().trim() + ' ⭐' ||
-    //   'Not Rated'; // Updated selector - more specific
-    // movieDetail.Likes = page('.rating-row span.peers').text().trim(); // Updated selector - more specific
-
-    // page('.tech-spec-element').each((index, element) => {
-    //   const headingElement = page(element).find('h4'); // Select h4 inside .tech-spec-element
-    //   const valueElement = page(element).find('div.modal-torrent'); // Select div.modal-torrent inside .tech-spec-element
-
-    //   const heading = headingElement.text().trim();
-    //   const value = valueElement.text().trim();
-
-    //   if (heading === 'Genre:') {
-    //     movieDetail.Gen = value;
-    //   } else if (heading === 'Runtime:') {
-    //     movieDetail.Runtime = value;
-    //   }
-    // });
-
-    page('.modal-torrent').each((i, element) => {
-      const qualityElement = page(element);
-      const qualitySizeElements = qualityElement.find('.quality-size');
-      const qualityFull = qualitySizeElements.eq(0).text().trim();
-      const fileSize = qualitySizeElements.eq(1).text().trim();
-      const magnet = qualityElement.find('.magnet-download').attr('href');
-      const quality = qualityElement.find('.modal-quality').text();
-
-      if (magnet) {
-        this.torrents.push({ quality, qualityFull, fileSize, magnet });
-      }
-    });
+        if (magnet) {
+          return { quality, qualityFull, fileSize, magnet };
+        }
+      })
+      .filter((t) => !!t);
   }
 }
