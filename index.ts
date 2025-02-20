@@ -34,19 +34,30 @@ async function torrentToEngine(
     const engine = torrentStream(torrent as any, { tmp: '.' }) as IMyEngine;
 
     engine.clientCount = 0;
-    engine.reconnectTimeout = -1 as any;
+    engine.lastClientDisconnect = -1;
 
     engine.lazyDestroy = () => {
-      clearTimeout(engine.reconnectTimeout);
-      engine.reconnectTimeout = setTimeout(() => {
-        if (engine.clientCount > 0) return;
+      console.log(
+        new Date(),
+        'client-  ',
+        torrent.infoHash,
+        `count: ${engine.clientCount}`
+      );
 
-        engine.remove(false, () => {});
-        engine.destroy(() => {});
+      engine.lastClientDisconnect = Date.now();
 
-        torrents.delete(torrent.infoHash);
-        console.log(new Date(), 'engine-  ', torrent.infoHash);
-      }, +env.RECONNECT_TIMEOUT!);
+      engine.clientCount--;
+    };
+
+    engine.clientConnect = () => {
+      console.log(
+        new Date(),
+        'client+  ',
+        torrent.infoHash,
+        `count: ${engine.clientCount}`
+      );
+
+      engine.clientCount++;
     };
 
     const lock = Promise.withResolvers();
@@ -150,12 +161,10 @@ app.get('/magnet', async (req, res, next) => {
     const engine = await torrentToEngine(torrent);
     streamTorrent(torrent, engine, req, res, next);
     removeClient = true;
-    engine.clientCount++;
+    engine.clientConnect();
 
     errorMessage = '';
     req.on('close', () => {
-      engine.clientCount--;
-      console.log(new Date(), 'client-  ', torrent.infoHash);
       engine.lazyDestroy();
     });
 
@@ -243,6 +252,47 @@ async function loadExistingTorrent() {
   }
 }
 
+async function cleanupTorrents() {
+  const timeoutMultiplier = torrents.size < 4 ? 5 : torrents.size < 6 ? 3 : 1;
+  console.log(
+    new Date(),
+    'cleanup? ',
+    'torrents count:',
+    torrents.size,
+    'timeout multiplier',
+    timeoutMultiplier
+  );
+
+  for (const [infoHash, engine] of torrents.entries()) {
+    if (engine.clientCount > 0) {
+      console.log(new Date(), 'cleanup+ ', infoHash, engine.clientCount);
+      continue;
+    }
+
+    if (engine.lastClientDisconnect === -1) {
+      console.log(new Date(), 'cleanup~ ', infoHash, 'not started');
+      continue;
+    }
+
+    const inactiveTime = Date.now() - engine.lastClientDisconnect;
+    const shouldRemove =
+      inactiveTime >
+      +env.RECONNECT_TIMEOUT! *
+        (torrents.size < 4 ? 5 : torrents.size < 6 ? 3 : 1);
+
+    if (shouldRemove) {
+      console.log(new Date(), 'cleanup- ', infoHash, inactiveTime);
+      engine.remove(false, () => {});
+      engine.destroy(() => {});
+      torrents.delete(infoHash);
+    }
+
+    console.log(new Date(), 'cleanup. ', infoHash, inactiveTime, shouldRemove);
+  }
+}
+
+setInterval(cleanupTorrents, 5 * 60 * 1000);
+
 app.listen(env.PORT, async () => {
   console.log(new Date(), `Server listening on port ${env.PORT}`);
   await loadExistingTorrent();
@@ -251,5 +301,7 @@ app.listen(env.PORT, async () => {
 type IMyEngine = TorrentStream.TorrentEngine & {
   reconnectTimeout: Timer;
   lazyDestroy: () => void;
+  clientConnect: () => void;
   clientCount: number;
+  lastClientDisconnect: number;
 };
