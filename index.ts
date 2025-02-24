@@ -192,8 +192,13 @@ app.get('/imdb/:id', async (req, res, next) => {
     }
 
     errorMessage = 'movie not found, api error';
-    const data = await yts(imdbId);
-    await data[0].fetch();
+    const data = await yts(imdbId).catch(
+      (e) => (console.error('yts error:', e), Promise.reject(e))
+    );
+    await data[0]
+      .fetch()
+      .catch((e) => (console.error('yts error:', e), Promise.reject(e)));
+
     data[0].torrents;
 
     errorMessage = 'movie format error';
@@ -210,6 +215,10 @@ app.get('/imdb/:id', async (req, res, next) => {
 
     const magnetLink = bestQualityTorrent['magnet'];
 
+    res.setHeader(
+      'Set-Cookie',
+      `tt=${imdbId}; Path=/; HttpOnly; Max-Age=86400`
+    );
     res.redirect(`/magnet?link=${encodeURIComponent(magnetLink)}`);
   } catch (error: any) {
     errorMessage ||= error?.message || error;
@@ -218,8 +227,13 @@ app.get('/imdb/:id', async (req, res, next) => {
   }
 });
 
-app.get('/srt/:id', async (req, res, next) => {
-  const imdbId = req.params.id || '';
+app.get('/srt/:id?', async (req, res, next) => {
+  let imdbId = req.params.id || '';
+  if (!imdbId) {
+    imdbId = req.cookies?.tt;
+  }
+
+  console.log(new Date(), 'srt      ', imdbId);
 
   let errorMessage = '';
   try {
@@ -329,3 +343,11 @@ type IMyEngine = TorrentStream.TorrentEngine & {
   clientCount: number;
   lastClientDisconnect: number;
 };
+
+declare global {
+  interface env {
+    PORT: string;
+    TORRENT_STREAM_FOLDER: string;
+    RECONNECT_TIMEOUT: string;
+  }
+}
