@@ -149,13 +149,13 @@ function streamTorrent(torrent: MagnetUri.Instance, engine, req, res, next) {
   });
 }
 
-app.get('/magnet', async (req, res, next) => {
+app.get('/magnet:', async (req, res, next) => {
   let errorMessage = '';
   let removeClient = false;
 
   try {
     errorMessage = 'error parsing magnet';
-    const torrent = await parseTorrent(req.query.link as string);
+    const torrent = await parseTorrent(req.url.slice(1));
     console.log(new Date(), 'client+  ', torrent.infoHash);
 
     errorMessage = 'error loading torrent';
@@ -219,7 +219,7 @@ app.get('/imdb/:id', async (req, res, next) => {
       'Set-Cookie',
       `tt=${imdbId}; Path=/; HttpOnly; Max-Age=86400`
     );
-    res.redirect(`/magnet?link=${encodeURIComponent(magnetLink)}`);
+    res.redirect(`/${magnetLink}`);
   } catch (error: any) {
     errorMessage ||= error?.message || error;
 
