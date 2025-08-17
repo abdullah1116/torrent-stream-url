@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Torrent Stream Url</title>
+  </head>
+  <body>
+    <input id="file" type="file" accept="application/x-bittorrent" hidden />
+
+    <button onclick="showPicker()">pick torrent file</button>
+    <label id="label"></label>
+
+    <script>
+      const fileElement = document.getElementById('file');
+      const labelElement = document.getElementById('label');
+
+      setTimeout(() => {
+        if (navigator.userActivation.isActive) {
+          fileElement.click();
+        }
+      }, 100);
+
+      fileElement.onchange = (event) => {
+        console.log('🚀 ~ event:', event);
+
+        var data = new FormData();
+        data.append('file', fileElement.files[0]);
+
+        fetch('/torrent', {
+          method: 'POST',
+          body: data,
+        }).then(async (res) => {
+          location.href = '/' + (await res.json()).magnet;
+
+          labelElement.innerText = 'redirecting';
+        });
+      };
+
+      function showPicker() {
+        fileElement.click();
+      }
+    </script>
+  </body>
+</html>

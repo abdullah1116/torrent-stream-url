@@ -9,6 +9,7 @@
   "dependencies": {
     "adm-zip": "^0.5.16",
     "express": "^4.21.2",
+    "multer": "^2.0.2",
     "node-html-parser": "^7.0.1",
     "parse-torrent": "^11.0.18",
     "range-parser": "^1.2.1",

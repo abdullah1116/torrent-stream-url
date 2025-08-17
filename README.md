@@ -39,6 +39,7 @@ PORT=8080 bun run index.ts
 
 - `/magnet?link=<magnet_uri>`: Streams a torrent from a magnet URI.
 - `/imdb/:id`: Streams a torrent from an IMDb ID using the YTS API.
+- `/torrent`: it return html for handling torrent file, here you can upload torrent file
 
 ## Systemd Service Setup (Optional)
 
