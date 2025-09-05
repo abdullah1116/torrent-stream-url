@@ -110,7 +110,7 @@ export function apiInit(app: Express) {
         .writeHead(200, {
           'Content-Type': 'text',
           'Accept-Ranges': 'bytes',
-          'Content-Disposition': 'attachment;',
+          'Content-Disposition': `attachment; filename="subtitle ${imdbId}.srt"`,
         })
         .send(subtitles)
         .end();
