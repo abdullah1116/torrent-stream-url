@@ -3,3 +3,4 @@ node_modules
 torrent-stream
 .vscode
 bundle.js
+.env

@@ -1,9 +1,10 @@
 import parse from 'node-html-parser';
+import { env } from 'node:process';
 
 export async function yts(movieName: string): Promise<lazyMovie[]> {
   const root = parse(
     await (
-      await fetch(`https://yts.mx/browse-movies/${movieName}`, {
+      await fetch(`https://${env.YTS_DOMAIN}/browse-movies/${movieName}`, {
         headers: {
           'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.106 Safari/537.36',
@@ -35,7 +36,7 @@ class lazyMovie {
     magnet: string;
   }[] = [];
 
-  constructor(public name: string, public link: string) {}
+  constructor(public name: string, public link: string) { }
 
   async fetch() {
     const page = parse(
